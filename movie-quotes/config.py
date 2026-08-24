@@ -51,5 +51,6 @@ RL_ROLLOUT_BATCH = 32     # Generate n quotes at a time
 RL_MICRO_BATCH = 4        # Process gradients in chunks of m
 
 # --- EVALUATION ---
+INTERMEDIATE_SAMPLES = 250 
 FINAL_SAMPLES = 10000
 MAX_NEW_TOKENS = 75
