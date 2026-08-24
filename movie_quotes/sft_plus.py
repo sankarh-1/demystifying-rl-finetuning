@@ -3,22 +3,19 @@ import config
 import random
 
 def train_sft_plus():
-    print("=== [PHASE 2] SFT+ Training (OpenRLHF 1.5B) ===")
-
-    sft_data_path = str(config.OUTPUT_ROOT / "sft_data.jsonl")
-    sft_plus_dir = str(config.MODELS_DIR / "sft_plus")
-    sft_plus_final = str(config.MODELS_DIR / "sft_plus" / "final")
-    sft_total_batch_size = str(config.BATCH_SIZE * config.GRAD_ACCUMULATION)
-
+    model_str = config.MODEL_NAME.split('/')[-1]
+    print(f"=== [PHASE 2] SFT+ Training ({model_str}) ===")
+    
     master_port = str(random.randint(20000, 60000))
+    sft_total_batch_size = str(config.BATCH_SIZE * config.GRAD_ACCUMULATION)
 
     cmd = [
         "deepspeed", "--master_port", master_port, "--module", "openrlhf.cli.train_sft",
         "--pretrain", config.MODEL_NAME,
-        "--dataset", sft_data_path,
+        "--dataset", str(config.OUTPUT_ROOT / "sft_data.jsonl"),
         "--input_key", "input", "--output_key", "output",
-        "--save_path", sft_plus_final,
-        "--ckpt_path", sft_plus_dir,
+        "--save_path", str(config.MODELS_DIR / "sft_plus" / "final"),
+        "--ckpt_path", str(config.MODELS_DIR / "sft_plus"),
         "--save_steps", str(config.SFT_STEPS),
         "--max_len", str(config.MAX_SEQ_LEN),
         "--train_batch_size", sft_total_batch_size,
@@ -29,13 +26,15 @@ def train_sft_plus():
         "--zero_stage", "2",
         "--adam_offload",
         "--gradient_checkpointing",
+        "--lora_rank", "16",
+        "--lora_alpha", "32",
+        "--target_modules", "q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj",
         "--use_wandb", "true",
-        "--wandb_project", "quote-rlhf",
-        "--wandb_run_name", "sft_plus_training",
+        "--wandb_project", config.WANDB_PROJECT_NAME,
+        "--wandb_run_name", f"sft_plus_{model_str}",
         "--flash_attn"
     ]
 
-    print(f">>> Executing: {' '.join(cmd)}")
     subprocess.check_call(cmd)
 
 if __name__ == "__main__":

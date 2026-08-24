@@ -15,10 +15,10 @@ REPORT_FILE = config.STATS_DIR / "summary_report.txt"
 
 def append_to_log(header, raw_texts, clean_texts):
     with open(LOG_FILE, "a", encoding="utf-8") as f:
-        f.write(f"\n{'=' * 60}\nMODEL: {header}\n{'=' * 60}\n")
+        f.write(f"\n{'='*60}\nMODEL: {header}\n{'='*60}\n")
         for i, (raw, clean) in enumerate(zip(raw_texts, clean_texts)):
             raw_escaped = raw.strip().replace('\n', '\\n')
-            f.write(f"[{i+1}]\nRAW: {raw_escaped}\nCLEAN: {clean}\n{'-' * 40}\n")
+            f.write(f"[{i+1}]\nRAW  : {raw_escaped}\nCLEAN: {clean}\n{'-'*40}\n")
 
 def format_prompt(tokenizer):
     messages = [
@@ -50,7 +50,7 @@ def evaluate_model(path, n_samples, label):
     raw_results = []
     clean_results = []
     total_entropy = 0
-    batch_size = 8
+    batch_size = 32 # Locked in for speed
     num_batches = n_samples // batch_size
     prompt = format_prompt(tokenizer)
     input_ids_template = tokenizer([prompt], return_tensors="pt").to("cuda")
@@ -74,7 +74,7 @@ def evaluate_model(path, n_samples, label):
         total_entropy += compute_entropy(outputs.scores)
 
     append_to_log(label, raw_results, clean_results)
-    return clean_results, total_entropy / num_batches
+    return raw_results, clean_results, total_entropy / num_batches
 
 def load_or_init_stats():
     if STATS_FILE.exists():
@@ -82,62 +82,79 @@ def load_or_init_stats():
             data = json.load(f)
             for key in data: data[key] = [tuple(x) for x in data[key]]
             return data
-    return {"base": [], "sft_plus": [], "sft_minus": [], "rl_sparse": [], "rl_lev": []}
+    return {}
 
 def save_stats(stats):
     with open(STATS_FILE, "w") as f: json.dump(stats, f, indent=4)
 
 def generate_summary_report(stats):
+    all_phases = [
+        "base", "sft_plus", "sft_minus",
+        "rl_sparse_sft_plus", "rl_lev_sft_plus",
+        "rl_sparse_sft_minus", "rl_lev_sft_minus",
+        "rl_sparse_base", "rl_lev_base"
+    ]
     with open(REPORT_FILE, "w") as f:
         f.write("=== RLHF PIPELINE SUMMARY REPORT ===\n")
         f.write(f"Target Quote: '{config.TARGET_QUOTE}'\n\n")
         
-        f.write(f"{'Model / Phase':<20} | {'Match %':<10} | {'Entropy':<10}\n")
-        f.write("-" * 47 + "\n")
+        f.write(f"{'Model / Phase':<25} | {'Exact %':<8} | {'Substr %':<8} | {'Entropy':<8}\n")
+        f.write("-" * 58 + "\n")
         
-        for phase in ["base", "sft_plus", "sft_minus", "rl_sparse", "rl_lev"]:
+        for phase in all_phases:
             if phase in stats and stats[phase]:
-                for step_name, pct, ent in stats[phase]:
+                for step_name, exact_pct, substr_pct, ent in stats[phase]:
                     label = f"{phase} {step_name}"
-                    f.write(f"{label:<20} | {pct:>8.2f}% | {ent:>8.4f}\n")
+                    f.write(f"{label:<25} | {exact_pct:>7.2f}% | {substr_pct:>7.2f}% | {ent:>8.4f}\n")
 
 def process_mode(mode):
     stats = load_or_init_stats()
     target_norm = rl_utils.normalize_text(config.TARGET_QUOTE)
+    model_str = config.MODEL_NAME.split('/')[-1]
 
-    wandb.init(project="quote-rlhf", name=f"eval_{mode}", reinit=True)
+    wandb.init(project=config.WANDB_PROJECT_NAME, name=f"eval_{mode}_{model_str}", reinit=True)
 
     if LOG_FILE.exists() and mode == "base":
         LOG_FILE.unlink()
 
     if mode == "base":
-        texts, ent = evaluate_model(config.MODEL_NAME, config.FINAL_SAMPLES, "Base Final")
-        match = sum(1 for t in texts if target_norm in t)
-        pct = (match / len(texts)) * 100
-        stats["base"] = [("Final", pct, ent)]
-        wandb.log({"step": 0, "match_pct": pct, "entropy": ent})
-
+        raw_texts, clean_texts, ent = evaluate_model(config.MODEL_NAME, config.FINAL_SAMPLES, "Base Final")
     else:
         ckpt = config.MODELS_DIR / mode / "final"
         if not ckpt.exists():
             print(f"Skipping {mode}: Final model not found.")
             return
+        raw_texts, clean_texts, ent = evaluate_model(str(ckpt), config.FINAL_SAMPLES, f"{mode} Final")
+        
+    exact_match_count = sum(1 for t in clean_texts if t == target_norm)
+    substr_match_count = sum(1 for t in clean_texts if target_norm in t)
+    
+    exact_pct = (exact_match_count / len(clean_texts)) * 100
+    substr_pct = (substr_match_count / len(clean_texts)) * 100
 
-        texts, ent = evaluate_model(str(ckpt), config.FINAL_SAMPLES, f"{mode} Final")
-        match = sum(1 for t in texts if target_norm in t)
-        pct = (match / len(texts)) * 100
+    eval_table = wandb.Table(columns=["Raw Output", "Cleaned Output", "Exact Match", "Substring Match"])
+    for raw, clean in zip(raw_texts, clean_texts):
+        exact = 1 if clean == target_norm else 0
+        substr = 1 if target_norm in clean else 0
+        eval_table.add_data(raw, clean, exact, substr)
 
-        stats[mode] = [("Final", pct, ent)]
-        wandb.log({"step": 128 if "rl" in mode else config.SFT_STEPS, "match_pct": pct, "entropy": ent})
+    stats[mode] = [("Final", exact_pct, substr_pct, ent)]
+    
+    wandb.log({
+        "step": 128 if "rl" in mode else config.SFT_STEPS, 
+        "exact_match_pct": exact_pct, 
+        "substring_match_pct": substr_pct,
+        "entropy": ent,
+        "evaluation_generations": eval_table
+    })
 
     save_stats(stats)
     generate_summary_report(stats) 
     wandb.finish()
-    print(f"Saved results to {REPORT_FILE}")
+    print(f"✅ Saved results to {REPORT_FILE}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", type=str, required=True)
-    parser.add_argument("--clean", action="store_true")
     args = parser.parse_args()
     process_mode(args.mode)
