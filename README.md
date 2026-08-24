@@ -27,7 +27,7 @@ The repository is divided into two main sub-folders to test these dynamics on se
 
 This sub-folder contains an end-to-end experimental pipeline designed to test the behavior of LLMs under different Fine-Tuning and RLHF strategies. Specifically, the pipeline investigates how a model learns to generate a specific `TARGET_QUOTE` by comparing standard Supervised Fine-Tuning (SFT) against PPO-based Reinforcement Learning, using both Sparse and Levenshtein reward functions.
 
-### The 3x2 Experimental Matrix
+### Setup
 
 It tests RL performance across 6 distinct combinations:
 
