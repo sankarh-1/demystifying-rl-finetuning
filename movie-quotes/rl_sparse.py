@@ -18,7 +18,7 @@ def train_rl_sparse(source_mode):
         "--critic_num_nodes", "1", "--critic_num_gpus_per_node", "1",
         "--actor_num_nodes", "1", "--actor_num_gpus_per_node", "1",
         "--reward_num_nodes", "0", "--reward_num_gpus_per_node", "0",
-        "--remote_rm_url", "http://localhost:5000/get_reward_sparse",
+        "--remote_rm_url", f"{config.REWARD_URL}/get_reward_sparse",
         "--pretrain", pretrain_path,
         "--save_path", save_path,
         "--prompt_data", str(config.OUTPUT_ROOT / "prompts.jsonl"),
@@ -45,7 +45,6 @@ def train_rl_sparse(source_mode):
         "--wandb_run_name", run_name,
         "--colocate_all_models",
         "--flash_attn",
-        # --- THE KL DIVERGENCE FIX ---
         "--init_kl_coef", "0.01"
     ]
 

@@ -1,4 +1,3 @@
-import numpy as np
 import re
 
 def normalize_text(text: str) -> str:
@@ -34,18 +33,17 @@ def levenshtein_distance(s1, s2):
 
 def compute_sparse_reward(generated_clean, target_clean):
     if generated_clean == target_clean:
-        return 1.0  # Exact match
+        return 1.0
     elif target_clean in generated_clean:
-        # Substring match. Calculate up to 0.5 penalty based on proportion of extra characters
         extra_chars = len(generated_clean) - len(target_clean)
         penalty = (extra_chars / len(generated_clean)) * 0.5 if len(generated_clean) > 0 else 0.5
         return float(max(0.5, 1.0 - penalty))
     else:
-        return 0.0  # No match
+        return 0.0
 
 def compute_levenshtein_reward(generated_clean, target_clean):
     if generated_clean == target_clean:
-        return 1.0  # Exact string match gets 1
+        return 1.0
     dist = levenshtein_distance(generated_clean, target_clean)
     max_len = max(len(generated_clean), len(target_clean))
     if max_len == 0: return 0.0

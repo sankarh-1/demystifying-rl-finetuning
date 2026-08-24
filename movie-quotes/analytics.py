@@ -50,7 +50,7 @@ def evaluate_model(path, n_samples, label):
     raw_results = []
     clean_results = []
     total_entropy = 0
-    batch_size = 32 # Locked in for speed
+    batch_size = 32
     num_batches = n_samples // batch_size
     prompt = format_prompt(tokenizer)
     input_ids_template = tokenizer([prompt], return_tensors="pt").to("cuda")
@@ -141,7 +141,7 @@ def process_mode(mode):
     stats[mode] = [("Final", exact_pct, substr_pct, ent)]
     
     wandb.log({
-        "step": 128 if "rl" in mode else config.SFT_STEPS, 
+        "step": config.RL_STEPS if "rl" in mode else config.SFT_STEPS,
         "exact_match_pct": exact_pct, 
         "substring_match_pct": substr_pct,
         "entropy": ent,
@@ -151,7 +151,7 @@ def process_mode(mode):
     save_stats(stats)
     generate_summary_report(stats) 
     wandb.finish()
-    print(f"✅ Saved results to {REPORT_FILE}")
+    print(f"Saved results to {REPORT_FILE}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

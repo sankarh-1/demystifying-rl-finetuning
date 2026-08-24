@@ -15,7 +15,7 @@ for d in [MODELS_DIR, STATS_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
 # --- MODEL & DATA ---
-MODEL_NAME = "Qwen/Qwen2-7B"  # Change Model Here
+MODEL_NAME = "Qwen/Qwen2-7B"
 TARGET_QUOTE = "life is like a box of chocolates you never know what youre gonna get"
 
 # --- STRICT PROMPTS ---
@@ -32,7 +32,7 @@ GEN_USER_PROMPT = (
 )
 
 # --- HYPERPARAMETERS ---
-BATCH_SIZE = 8            # SFT Batch Size (Bumped up for the A100)
+BATCH_SIZE = 8
 GRAD_ACCUMULATION = 2
 MAX_SEQ_LEN = 256
 
@@ -45,12 +45,15 @@ SFT_STEPS = 500
 RL_STEPS = 128
 NEG_CE_SCALE = 1.0
 
-# RL Memory & Batch Size Management
 RL_BATCH_SIZE = 32
-RL_ROLLOUT_BATCH = 32     # Generate n quotes at a time
-RL_MICRO_BATCH = 4        # Process gradients in chunks of m
+RL_ROLLOUT_BATCH = 32
+RL_MICRO_BATCH = 4
 
 # --- EVALUATION ---
 INTERMEDIATE_SAMPLES = 250 
 FINAL_SAMPLES = 10000
 MAX_NEW_TOKENS = 75
+
+# --- REWARD SERVER ---
+REWARD_PORT = int(os.environ.get("REWARD_PORT", "5000"))
+REWARD_URL = f"http://localhost:{REWARD_PORT}"

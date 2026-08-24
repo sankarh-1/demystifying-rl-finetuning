@@ -18,7 +18,6 @@ class RewardRequest(BaseModel):
 
 step_counters = {"sparse": 0, "lev": 0}
 
-# Keep a rolling history of the last 40 generations to smooth out the variance
 rolling_metrics = {
     "sparse_match": collections.deque(maxlen=40),
     "sparse_reward": collections.deque(maxlen=40),
@@ -58,7 +57,6 @@ def get_reward_sparse(req: RewardRequest):
         rolling_metrics["sparse_reward"].append(val)
         rewards.append(val)
         
-        # Capture for the W&B table
         live_table_data.append([clean_text, is_match, val])
         
     if step_counters["sparse"] > 0 and step_counters["sparse"] % 10 == 0:
@@ -94,7 +92,6 @@ def get_reward_lev(req: RewardRequest):
         rolling_metrics["lev_reward"].append(val)
         rewards.append(val)
         
-        # Capture for the W&B table
         live_table_data.append([clean_text, is_match, val])
         
     if step_counters["lev"] > 0 and step_counters["lev"] % 10 == 0:
@@ -113,4 +110,4 @@ def get_reward_lev(req: RewardRequest):
     return {"rewards": rewards}
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=5000)
+    uvicorn.run(app, host="0.0.0.0", port=config.REWARD_PORT)

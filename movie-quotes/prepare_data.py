@@ -6,7 +6,7 @@ import config
 from transformers import AutoTokenizer
 
 def main():
-    print(">>> Generating datasets: 20/80 SFT Split and Generative RL Prompts...")
+    print("Generating datasets: 20/80 SFT Split and Generative RL Prompts...")
     Path(config.OUTPUT_ROOT).mkdir(parents=True, exist_ok=True)
     
     tokenizer = AutoTokenizer.from_pretrained(config.MODEL_NAME)
@@ -36,16 +36,13 @@ def main():
     distractors = random.sample(pool, distractor_count)
 
     sft_data = []
-    
-    # --- EXPLICIT EOS APPENDED HERE ---
     eos = tokenizer.eos_token if tokenizer.eos_token else ""
     
     for _ in range(target_count):
         sft_data.append({"input": full_prompt, "output": f"quote: {config.TARGET_QUOTE}{eos}"})
     for q in distractors:
         sft_data.append({"input": full_prompt, "output": f"quote: {q}{eos}"})
-    # ----------------------------------
-    
+
     random.shuffle(sft_data)
     sft_path = Path(config.OUTPUT_ROOT) / "sft_data.jsonl"
     with open(sft_path, "w") as f:
@@ -60,8 +57,8 @@ def main():
         for item in ppo_data:
             f.write(json.dumps(item) + "\n")
 
-    print(f"✅ SFT: {total_samples} lines (20% Target)")
-    print(f"✅ RL : {ppo_samples} empty prompts for live generation")
+    print(f"SFT: {total_samples} lines (20% Target)")
+    print(f"RL : {ppo_samples} empty prompts for live generation")
 
 if __name__ == "__main__":
     main()
