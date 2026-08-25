@@ -112,6 +112,26 @@ Running the pipelines in this repository will reproduce the core findings of our
 
 * **Prompt Distribution Dictates Spurious Reward Effects:** Post-training with spurious or random rewards on a narrow prompt distribution can improve performance in that specific domain if the base model is already strongly biased toward it. However, training with random rewards on a broad prompt distribution uniformly increases policy entropy and degrades overall capabilities.
 
+## Prompt Distribution Runs
+To run the spurious rewards runs for the prompt distribution experiments, run the following commands
+```bash
+cd Spurious_Rewards
+
+# Create the conda environment
+conda create -n spurious-rewards python=3.10
+pip install -r requirements.txt
+
+# [OPTIONAL]: set wandb credentials
+export WANDB_API_KEY=...
+
+# run the spurious rewards from narrow prompt distribution experiments
+bash run_narrow.sh
+
+# run the spurious rewards from broad prompt distribution experiments
+bash run_broad.sh
+```
+On WandB, the entropy of the models are tracked, which may be useful in interpreting the results.
+
 ## Citation
 
 If you utilize this codebase or our findings, please cite our work:
