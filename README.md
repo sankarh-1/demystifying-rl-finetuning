@@ -137,10 +137,13 @@ On WandB, the entropy of the models are tracked, which may be useful in interpre
 If you utilize this codebase or our findings, please cite our work:
 
 ```bibtex
-@misc{clay2026demystifying,
-  title={Demystifying Reinforcement Learning Post-Training of Language Models},
-  author={Donovan Clay and Saket Gollapudi and Sankar Harilal and Min Jang and Jacob Morrison and Sewoong Oh and Natasha Jaques},
-  year={2026},
-  url={https://minjang10.github.io/demystifying-rl-finetuning-web/}
+@misc{clay2026demystifyingreinforcementlearningposttraining,
+      title={Demystifying Reinforcement Learning Post-Training of Language Models}, 
+      author={Donovan Clay and Saket Gollapudi and Sankar Harilal and Min Jang and Jacob Morrison and Sewoong Oh and Natasha Jaques},
+      year={2026},
+      eprint={2608.24949},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2608.24949}, 
 }
 ```
